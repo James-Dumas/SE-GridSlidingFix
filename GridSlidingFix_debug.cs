@@ -58,18 +58,18 @@ namespace JamacSpaceGameMod
                     try
                     {
                         long frameTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                        double dt = (frameTime - lastFrameTime) / 1000.0;
+                        float dt = (frameTime - lastFrameTime) / 1000f;
                         lastFrameTime = frameTime;
 
                         IMyCharacter character = (IMyCharacter) entity;
 
-                        double v = entity.Physics.LinearVelocity.Length();
-                        double w = entity.Physics.AngularVelocity.Length();
+                        float v = entity.Physics.LinearVelocity.Length();
+                        float w = entity.Physics.AngularVelocity.Length();
 
-                        double lateralSlideSpeed = 0.745 * w;
-                        double outwardSlideSpeed = 0.0035 * v;
-                        Vector3D lateralSlideVelocity = dt * lateralSlideSpeed * Vector3D.Normalize(Vector3D.Cross(entity.Physics.SupportNormal, entity.Physics.AngularVelocity)) * Math.Min(1, AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / (Math.PI / 2 - 0.45));
-                        Vector3D outwardSlideVelocity = dt * outwardSlideSpeed * Vector3D.Normalize(Vector3D.Cross(entity.Physics.LinearVelocity, entity.Physics.AngularVelocity)) * (1 - (AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / Math.PI * 2));
+                        float lateralSlideSpeed = 0.745f * w;
+                        float outwardSlideSpeed = 0.0035f * v;
+                        Vector3D lateralSlideVelocity = dt * lateralSlideSpeed * Vector3.Normalize(Vector3.Cross(entity.Physics.SupportNormal, entity.Physics.AngularVelocity)) * Math.Min(1f, AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / (((float) Math.PI) / 2f - 0.45f));
+                        Vector3D outwardSlideVelocity = dt * outwardSlideSpeed * Vector3.Normalize(Vector3.Cross(entity.Physics.LinearVelocity, entity.Physics.AngularVelocity)) * (1f - (AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / ((float) Math.PI) * 2f));
                         if(Double.IsNaN(lateralSlideVelocity.X))
                         {
                             lateralSlideVelocity = Vector3D.Zero;
@@ -79,7 +79,7 @@ namespace JamacSpaceGameMod
                             outwardSlideVelocity = Vector3D.Zero;
                         }
 
-                        if(v > 0.5 && character.CurrentMovementState != MyCharacterMovementEnum.Jump && character.CurrentMovementState != MyCharacterMovementEnum.Falling && character.CurrentMovementState != MyCharacterMovementEnum.Flying)
+                        if(v > 0.1f && character.CurrentMovementState != MyCharacterMovementEnum.Jump && character.CurrentMovementState != MyCharacterMovementEnum.Falling && character.CurrentMovementState != MyCharacterMovementEnum.Flying)
                         {
                             entity.PositionComp.SetPosition(entity.PositionComp.GetPosition() - lateralSlideVelocity - outwardSlideVelocity);
                         }
@@ -131,12 +131,12 @@ namespace JamacSpaceGameMod
             }
         }
 
-        private static double AngleBetween(Vector3 a, Vector3 b)
+        private static float AngleBetween(Vector3 a, Vector3 b)
         {
-            double angle = Math.Min(Math.Acos(Vector3.Dot(a, b) / (a.Length() * b.Length())), Math.Acos(Vector3.Dot(a, -b) / (a.Length() * b.Length())));
+            float angle = (float) Math.Min(Math.Acos(Vector3.Dot(a, b) / (a.Length() * b.Length())), Math.Acos(Vector3.Dot(a, -b) / (a.Length() * b.Length())));
             if(Double.IsNaN(angle))
             {
-                return 0;
+                return 0f;
             }
             
             return angle;
