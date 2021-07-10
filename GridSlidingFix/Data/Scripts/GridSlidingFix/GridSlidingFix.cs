@@ -17,8 +17,10 @@ namespace JamacSpaceGameMod
     public class GridSlidingFix : MySessionComponentBase
     {
         
-        private HashSet<IMyEntity> characterEntities = new HashSet<IMyEntity>();
-        private long lastFrameTime;
+        private HashSet<IMyEntity> characterEntitiesSet = new HashSet<IMyEntity>();
+        private List<IMyEntity> characterEntitiesList = new List<IMyEntity>();
+        private Vector3D lastSupportNormal;
+        private bool supported = false;
 
         public override void BeforeStart()
         {
@@ -34,30 +36,28 @@ namespace JamacSpaceGameMod
             MyAPIGateway.Entities.OnEntityAdd += OnEntityAdd;
             MyAPIGateway.Entities.OnEntityRemove += OnEntityRemove;
 
-            lastFrameTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            Vector3D lastSupportNormal = Vector3D.Zero;
 
             MyLog.Default.WriteLineAndConsole("GridSlidingFix: Setup complete");
         }
 
         public override void UpdateBeforeSimulation()
         {
-            foreach(IMyEntity entity in characterEntities)
+            foreach(IMyEntity entity in characterEntitiesList)
             {
                 if(entity != null && entity.Physics != null)
                 {
                     try
                     {
-                        long frameTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                        float dt = (frameTime - lastFrameTime) / 1000f;
-                        lastFrameTime = frameTime;
+                        float dt = 0.01666667f;
 
                         IMyCharacter character = (IMyCharacter) entity;
 
                         float v = entity.Physics.LinearVelocity.Length();
                         float w = entity.Physics.AngularVelocity.Length();
 
-                        float lateralSlideSpeed = 0.745f * w;
-                        float outwardSlideSpeed = 0.0035f * v;
+                        float lateralSlideSpeed = 0.85f * w;
+                        float outwardSlideSpeed = 0.003f * v;
                         Vector3D lateralSlideVelocity = dt * lateralSlideSpeed * Vector3.Normalize(Vector3.Cross(entity.Physics.SupportNormal, entity.Physics.AngularVelocity)) * Math.Min(1f, AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / (((float) Math.PI) / 2f - 0.45f));
                         Vector3D outwardSlideVelocity = dt * outwardSlideSpeed * Vector3.Normalize(Vector3.Cross(entity.Physics.LinearVelocity, entity.Physics.AngularVelocity)) * (1f - (AngleBetween(entity.Physics.SupportNormal, entity.Physics.AngularVelocity) / ((float) Math.PI) * 2f));
                         if(Double.IsNaN(lateralSlideVelocity.X))
@@ -69,10 +69,34 @@ namespace JamacSpaceGameMod
                             outwardSlideVelocity = Vector3D.Zero;
                         }
 
-                        if(v > 0.1f && character.CurrentMovementState != MyCharacterMovementEnum.Jump && character.CurrentMovementState != MyCharacterMovementEnum.Falling && character.CurrentMovementState != MyCharacterMovementEnum.Flying)
+                        // check if current movement state is one where player *could* be standing on a surface
+                        if(!(character.CurrentMovementState == MyCharacterMovementEnum.Flying
+                        || character.CurrentMovementState == MyCharacterMovementEnum.Jump
+                        || character.CurrentMovementState == MyCharacterMovementEnum.Falling
+                        || character.CurrentMovementState == MyCharacterMovementEnum.Sitting
+                        || character.CurrentMovementState == MyCharacterMovementEnum.Died
+                        || character.CurrentMovementState == MyCharacterMovementEnum.Ladder
+                        || character.CurrentMovementState == MyCharacterMovementEnum.LadderUp
+                        || character.CurrentMovementState == MyCharacterMovementEnum.LadderDown
+                        || character.CurrentMovementState == MyCharacterMovementEnum.LadderOut))
                         {
+                            if(!supported && (entity.Physics.SupportNormal - lastSupportNormal).Length() > 0.000000000001)
+                            {
+                                supported = true;
+                            }
+                        }
+                        else
+                        {
+                            supported = false;
+                        }
+
+                        if(v > 0.01f && w > 0.01f && supported)
+                        {
+                            // correct sliding
                             entity.PositionComp.SetPosition(entity.PositionComp.GetPosition() - lateralSlideVelocity - outwardSlideVelocity);
                         }
+
+                        lastSupportNormal = entity.Physics.SupportNormal;
                     }
                     catch(Exception e)
                     {
@@ -86,15 +110,17 @@ namespace JamacSpaceGameMod
         {
             if(entity != null && entity is IMyCharacter)
             {
-                characterEntities.Add(entity);
+                characterEntitiesSet.Add(entity);
+                characterEntitiesList.Add(entity);
             }
         }
 
         public void OnEntityRemove(IMyEntity entity)
         {
-            if(entity != null && characterEntities.Contains(entity))
+            if(entity != null && characterEntitiesSet.Contains(entity))
             {
-                characterEntities.Remove(entity);
+                characterEntitiesSet.Remove(entity);
+                characterEntitiesList.Remove(entity);
             }
         }
 
