@@ -86,7 +86,8 @@ namespace JamacSpaceGameMod
                         || character.CurrentMovementState == MyCharacterMovementEnum.Ladder
                         || character.CurrentMovementState == MyCharacterMovementEnum.LadderUp
                         || character.CurrentMovementState == MyCharacterMovementEnum.LadderDown
-                        || character.CurrentMovementState == MyCharacterMovementEnum.LadderOut))
+                        || character.CurrentMovementState == MyCharacterMovementEnum.LadderOut
+                        ))
                         {
                             if(!supported && (entity.Physics.SupportNormal - lastSupportNormal).Length() > 0.000000000001)
                             {
